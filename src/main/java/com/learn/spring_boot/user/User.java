@@ -1,9 +1,22 @@
 package com.learn.spring_boot.user;
 
-import java.time.LocalDate;
+import jakarta.persistence.*;
 
+import java.time.LocalDate;
+@Entity
+@Table
 public class User {
-    private long id;
+    @Id
+    @SequenceGenerator(
+            name = "user_seq",
+            sequenceName = "user_seq",
+            allocationSize = 1
+    )
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "user_seq"
+    )
+    private Long id;
     private String name;
     private String email;
     private LocalDate dob;
