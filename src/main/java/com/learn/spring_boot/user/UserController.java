@@ -1,8 +1,11 @@
 package com.learn.spring_boot.user;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,33 +16,41 @@ public class UserController {
 
     private final UserService _userService;
 
-    @Autowired
     public UserController(UserService userService) {
         _userService = userService;
     }
 
     @GetMapping
-    public List<User> Index(){
+    public List<UserDto> Index(){
         return _userService.findAll();
     }
 
+    @SuppressWarnings("rawtypes")
     @PostMapping
-    public User Store(@RequestBody UserDto dto){
-        return _userService.create(dto.name, dto.email, dto.dob);
+    public ResponseEntity Store(@Valid @RequestBody UserRequestDto dto) {
+        try {
+            UserDto user = _userService.create(dto.name, dto.email, dto.dob);
+            return ResponseEntity.created(URI.create("/api/v1/users")).body(user);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", e.getMessage());
+
+            return ResponseEntity.badRequest().body(response);
+        }
     }
 
     @PutMapping("{id}")
-    public User Update(@PathVariable("id") Long id , @RequestBody UserDto dto){
+    public UserDto Update(@PathVariable Long id , @Valid @RequestBody UserRequestDto dto){
         return _userService.update(id, dto.name, dto.email, dto.dob);
     }
 
     @DeleteMapping("{id}")
-    public Map<String, String> Destroy(@PathVariable("id") Long id){
+    public ResponseEntity<Map<String, String>> Destroy(@PathVariable Long id){
         _userService.delete(id);
 
         Map<String, String> response = new HashMap<>();
         response.put("message", "Deleted");
 
-        return response;
+        return ResponseEntity.ok().body(response);
     }
 }

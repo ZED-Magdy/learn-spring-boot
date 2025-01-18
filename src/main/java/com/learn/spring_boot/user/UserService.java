@@ -1,28 +1,42 @@
 package com.learn.spring_boot.user;
 
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
+
+import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
 
     private final UserRepository _userRepository;
+    private final ModelMapper _mapper;
 
-    @Autowired
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, ModelMapper mapper) {
         _userRepository = userRepository;
+        _mapper = mapper;
     }
 
-    public List<User> findAll(){
-        return _userRepository.findAll();
+    public List<UserDto> findAll(){
+        List<User> users = _userRepository.findAll();
+        return users
+                .stream()
+                .map(user -> _mapper.map(user, UserDto.class))
+                .collect(Collectors.toList());
     }
 
-    public User create(String name, String email, LocalDate dob){
+    public UserDto create(String name, String email, LocalDate dob) {
+        Optional<User> existingUser = _userRepository.findByEmail(email);
+
+        if(existingUser.isPresent()){
+            throw new IllegalArgumentException("Email is already in use");
+        }
+
         User user = new User(
                 name,
                 email,
@@ -30,10 +44,12 @@ public class UserService {
                 dob.until(LocalDate.now()).getYears()
         );
 
-        return _userRepository.save(user);
+        _userRepository.save(user);
+
+        return _mapper.map(user, UserDto.class);
     }
 
-    public User update(Long id, String name, String email, LocalDate dob){
+    public UserDto update(Long id, String name, String email, LocalDate dob){
         Optional<User> query = _userRepository.findById(id);
 
         if(query.isEmpty()){
@@ -48,7 +64,9 @@ public class UserService {
         user.setAge(dob.until(LocalDate.now()).getYears());
 
 
-        return _userRepository.save(user);
+        User updatedUser = _userRepository.save(user);
+
+        return _mapper.map(updatedUser, UserDto.class);
     }
 
     public void delete(Long id) {
